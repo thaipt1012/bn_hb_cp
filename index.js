@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
+const https = require('https');
 
 app.get('/binance_all_symboys', (req, res) => {
   https.get('https://api1.binance.com/api/v3/ticker/price', (resp) => {
