@@ -6,13 +6,54 @@ const https = require('https');
 const steps = parseInt(process.env.steps || '123');
 const halfSteps = Math.round(steps / 2);
 
+var prices = {};
+const secondsToUpdate = 10;
+let latestUpdatePriceAt = 0;
+
+
 app.get('/all', (req, res) => {
-  let url = 'https://api1.binance.com/api/v3/ticker/price';
   console.log('new request. symbol=' + req.query.symbol + ' symbols=' + req.query.symbols);
 
-  if (req.query.symbol) {
-    url += '?symbol=' + req.query.symbol.toUpperCase();
+  if (Date.now() - latestUpdatePriceAt > secondsToUpdate * 1000) {
+    const updateBinanePrice = new Promise(getPriceFromBinance);
+    latestUpdatePriceAt = Date.now();
+
+    updateBinanePrice
+      .then((data) => {
+        prices = data;
+        res.json(processDataToResponse(req.query.symbol, req.query.ignore_encrypt));
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  } else {
+    res.json(processDataToResponse(req.query.symbol, req.query.ignore_encrypt));
   }
+});
+
+function processDataToResponse(symbol, ignore_encrypt) {
+  let data;
+
+  if (symbol) {
+    data = JSON.stringify(prices);
+    // data = JSON.stringify(filterBySymbols(prices, symbol));
+  } else {
+    data = JSON.stringify(prices);
+  }
+
+  if (!ignore_encrypt) {
+    data = encrypt(data);
+  }
+
+  return data;
+}
+
+
+
+function getPriceFromBinance(resolve, reject) {
+  console.log('Send request to Binance.......');
+
+  let url = 'https://api.binance.com/api/v3/ticker/price';
 
   https.get(url, (resp) => {
     let data = '';
@@ -22,14 +63,17 @@ app.get('/all', (req, res) => {
     });
 
     resp.on('end', () => {
-      if (req.query.symbols) {
-        data = JSON.stringify(filterBySymbols(JSON.parse(data), req.query.symbols));
-      }
+      let jsonRes = JSON.parse(data);
 
-      res.json(encrypt(data));
+      if (jsonRes.code) return jsonRes.msg.slice(0, 30) + '...';
+
+      resolve(jsonRes);
     });
   })
-});
+}
+
+
+
 
 app.listen(PORT, () => console.log(`Listening on ${ PORT }`))
 
@@ -37,13 +81,7 @@ function encrypt(text) {
   let encrypted = '';
 
   [...text].forEach((c, i) => {
-    let asciiCode = c.charCodeAt();
-
-    if (i % 2) {
-      asciiCode += steps;
-    } else {
-      asciiCode += halfSteps;
-    }
+    let asciiCode = c.charCodeAt() + (i % 2 ? steps : halfSteps);
 
     encrypted += (asciiCode).toString().padStart(3, '0');
   });
@@ -56,7 +94,6 @@ function filterBySymbols(data, symbols) {
   symbols = symbols.toLowerCase();
 
   data.forEach(c => {
-    console.log(symbols, c.symbol.toLowerCase());
     if (symbols.indexOf(c.symbol.toLowerCase()) !== -1) {
       output.push(c);
     }

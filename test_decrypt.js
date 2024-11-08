@@ -9,7 +9,7 @@ const halfSteps = Math.round(steps / 2);
 
 app.get('/', (req, res) => {
   let url = 'https://bn-hb-cp.onrender.com/all';
-  // url = 'http://localhost:3000/all';
+  url = 'http://localhost:3000/all';
 
   if (req.query.symbol) {
     url += '?symbol=' + req.query.symbol.toUpperCase();
@@ -28,6 +28,7 @@ app.get('/', (req, res) => {
 
     resp.on('end', () => {
       console.log('data =', data);
+      console.log('decrypt(data) =', decrypt(data));
 
       res.json(JSON.parse(decrypt(data)));
     });
@@ -41,15 +42,7 @@ function decrypt(encrypted) {
   let output = '';
 
   encrypted.slice(1, -1).match(/.{1,3}/g).forEach((asciiCode, i) => {
-    let old = asciiCode;
-
-    if (i % 2) {
-      asciiCode -= steps;
-    } else {
-      asciiCode -= halfSteps;
-    }
-
-    output += String.fromCharCode(asciiCode);
+    output += String.fromCharCode(asciiCode - (i % 2 ? steps : halfSteps));
   })
 
   return output;
