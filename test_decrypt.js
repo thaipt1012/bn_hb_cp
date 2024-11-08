@@ -1,17 +1,25 @@
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3001;
-const https = require('https');
+let https = require('https');
 const http = require('http');
 
 const steps = parseInt(process.env.steps || '123');
 const halfSteps = Math.round(steps / 2);
 
-let url = 'https://bn-hb-cp.onrender.com/all?symbol=sttusdt';
-// url = 'http://localhost:3000/all?symbol=sttusdt';
-
 app.get('/', (req, res) => {
-  http.get(url, (resp) => {
+  let url = 'https://bn-hb-cp.onrender.com/all';
+  // url = 'http://localhost:3000/all';
+
+  if (req.query.symbol) {
+    url += '?symbol=' + req.query.symbol.toUpperCase();
+  }
+
+  if (url.indexOf('http://') == 0) {
+    https = http;
+  }
+
+  https.get(url, (resp) => {
     let data = '';
 
     resp.on('data', (chunk) => {
@@ -19,7 +27,7 @@ app.get('/', (req, res) => {
     });
 
     resp.on('end', () => {
-      // console.log(JSON.parse(decrypt(data)));
+      console.log('data =', data);
 
       res.json(JSON.parse(decrypt(data)));
     });

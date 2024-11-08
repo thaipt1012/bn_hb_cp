@@ -6,12 +6,12 @@ const https = require('https');
 const steps = parseInt(process.env.steps || '123');
 const halfSteps = Math.round(steps / 2);
 
-let url = 'https://api1.binance.com/api/v3/ticker/price';
-
-
 app.get('/all', (req, res) => {
+  let url = 'https://api1.binance.com/api/v3/ticker/price';
+  console.log('new request. symbol=' + req.query.symbol + ' symbols=' + req.query.symbols);
+
   if (req.query.symbol) {
-    url += '?symbol=' + req.query.symbol;
+    url += '?symbol=' + req.query.symbol.toUpperCase();
   }
 
   https.get(url, (resp) => {
