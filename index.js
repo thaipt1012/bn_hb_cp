@@ -3,12 +3,18 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const https = require('https');
 
-const steps = process.env.steps || 123;
+const steps = parseInt(process.env.steps || '123');
+const halfSteps = Math.round(steps / 2);
 
+let url = 'https://api1.binance.com/api/v3/ticker/price';
 
 
 app.get('/all', (req, res) => {
-  https.get('https://api1.binance.com/api/v3/ticker/price', (resp) => {
+  if (req.query.symbol) {
+    url += '?symbol=' + req.query.symbol;
+  }
+
+  https.get(url, (resp) => {
     let data = '';
 
     resp.on('data', (chunk) => {
@@ -16,8 +22,6 @@ app.get('/all', (req, res) => {
     });
 
     resp.on('end', () => {
-      console.log(req.query.symbols);
-
       if (req.query.symbols) {
         data = JSON.stringify(filterBySymbols(JSON.parse(data), req.query.symbols));
       }
@@ -29,19 +33,23 @@ app.get('/all', (req, res) => {
 
 app.listen(PORT, () => console.log(`Listening on ${ PORT }`))
 
-
-
-
 function encrypt(text) {
   let encrypted = '';
 
-  [...text].forEach(c => {
-    encrypted += (c.charCodeAt() + steps).toString().padStart(3, '0') + '|';
+  [...text].forEach((c, i) => {
+    let asciiCode = c.charCodeAt();
+
+    if (i % 2) {
+      asciiCode += steps;
+    } else {
+      asciiCode += halfSteps;
+    }
+
+    encrypted += (asciiCode).toString().padStart(3, '0');
   });
 
   return encrypted;
 }
-
 
 function filterBySymbols(data, symbols) {
   let output = [];
@@ -56,20 +64,6 @@ function filterBySymbols(data, symbols) {
 
   return output;
 }
-
-
-// for extension
-function decrypt(encrypted) {
-  let output = '';
-
-  encrypted.match(/.{1,3}/g).forEach(asciiCode => {
-    output += String.fromCharCode(asciiCode - steps);
-  })
-
-  return output;
-}
-
-
 
 
 let houbiPrices = () => {
