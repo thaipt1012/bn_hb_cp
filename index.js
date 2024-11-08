@@ -36,7 +36,7 @@ function encrypt(text) {
   let encrypted = '';
 
   [...text].forEach(c => {
-    encrypted += (c.charCodeAt() + steps).toString().padStart(3, '0');
+    encrypted += (c.charCodeAt() + steps).toString().padStart(3, '0') + '|';
   });
 
   return encrypted;
